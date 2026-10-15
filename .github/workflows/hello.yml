@@ -1,12 +1,33 @@
-name: Test my code
+name: Test and deploy
 on: push
+
+permissions:            # what the robot is allowed to do
+  contents: read        # read my code
+  pages: write          # publish to GitHub Pages
+  id-token: write       # prove its identity to Pages
+
 jobs:
-  test:
+  test:                                   # JOB 1: the CI part (same as before)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4        # deliver my code
-      - uses: actions/setup-python@v5    # another ready-made action: install Python
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
-      - run: pip install pytest           # my own command: install the test tool
-      - run: pytest                       # my own command: run the tests
+      - run: pip install pytest
+      - run: pytest
+
+  deploy:                                 # JOB 2: the CD part (new)
+    needs: test                           # only start if "test" succeeded
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4         # fresh computer again, so deliver code again
+      - uses: actions/configure-pages@v5  # prepare Pages
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site                      # package the "site" folder
+      - id: deployment
+        uses: actions/deploy-pages@v4     # publish it
